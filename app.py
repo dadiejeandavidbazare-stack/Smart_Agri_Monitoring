@@ -28,7 +28,6 @@ st.markdown("""
 # --- CHARGEMENT DU MOTEUR IA ---
 @st.cache_resource
 def load_agronova_engine():
-    # Chemin relatif vers ton modèle .h5
     model_path = 'models/agri_model_v1.h5'
     
     classes = [
@@ -48,7 +47,7 @@ def load_agronova_engine():
     
     if os.path.exists(model_path):
         try:
-            # Utilisation de tf.keras pour éviter l'erreur d'importation Keras isolée
+            # Chargement via tf.keras.models pour éviter les erreurs d'import Keras isolé
             model = tf.keras.models.load_model(model_path, compile=False)
             return model, classes
         except Exception as e:
