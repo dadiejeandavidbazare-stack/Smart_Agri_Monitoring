@@ -1,8 +1,11 @@
+import os
+# FORCE LE MODE LEGACY AVANT TOUT IMPORT TENSORFLOW
+os.environ['TF_USE_LEGACY_KERAS'] = '1'
+
 import streamlit as st
 import tensorflow as tf
 import numpy as np
 from PIL import Image
-import os
 import plotly.graph_objects as go
 import random
 
@@ -19,30 +22,38 @@ st.markdown("""
     [data-testid="stSidebar"] { background-color: #0d1117 !important; border-right: 1px solid #30363d; }
     .command-card { background: #0d1117; border: 1px solid #30363d; border-radius: 10px; padding: 20px; margin-bottom: 15px; }
     .neon-header { font-family: 'Orbitron', sans-serif; font-size: 2.2rem; color: #3aedff; letter-spacing: 5px; text-shadow: 0 0 10px rgba(58, 237, 255, 0.4); }
-    .status-alert { padding: 8px; border-radius: 4px; background: rgba(255, 82, 82, 0.1); color: #ff5252; border: 1px solid #ff5252; font-size: 0.8rem; text-align: center; margin-top: 10px; }
     </style>
     """, unsafe_allow_html=True)
 
 # --- CHARGEMENT DU MOTEUR IA ---
 @st.cache_resource
 def load_agronova_engine():
-    # Correction : Utilisation de chemins relatifs propres pour le cloud
     model_path = 'models/agri_model_v1.h5'
-    data_dir = 'data/raw/plantvillage dataset/color'
+    # Liste de secours des classes au cas où le dossier 'data' est ignoré par Git
+    backup_classes = [
+        "Apple Scab", "Apple Black Rot", "Cedar Apple Rust", "Apple Healthy",
+        "Blueberry Healthy", "Cherry Powdery Mildew", "Cherry Healthy",
+        "Corn Cercospora Leaf Spot", "Corn Common Rust", "Corn Northern Leaf Blight", "Corn Healthy",
+        "Grape Black Rot", "Grape Esca", "Grape Leaf Blight", "Grape Healthy",
+        "Orange Haunglongbing", "Peach Bacterial Spot", "Peach Healthy",
+        "Pepper Bell Bacterial Spot", "Pepper Bell Healthy",
+        "Potato Early Blight", "Potato Late Blight", "Potato Healthy",
+        "Raspberry Healthy", "Soybean Healthy", "Squash Powdery Mildew",
+        "Strawberry Leaf Scorch", "Strawberry Healthy",
+        "Tomato Bacterial Spot", "Tomato Early Blight", "Tomato Late Blight",
+        "Tomato Leaf Mold", "Tomato Septoria Leaf Spot", "Tomato Spider Mites",
+        "Tomato Target Spot", "Tomato Yellow Leaf Curl Virus", "Tomato Mosaic Virus", "Tomato Healthy"
+    ]
     
     if os.path.exists(model_path):
         try:
-            # CORRECTION CRUCIALE : compile=False évite les erreurs de version Keras sur le serveur
-            model = tf.keras.models.load_model(model_path, compile=False)
-            
-            # On récupère les noms des dossiers pour l'indexation
-            if os.path.exists(data_dir):
-                classes = sorted(os.listdir(data_dir))
-            else:
-                # Liste de secours si le dossier data est ignoré par le .gitignore
-                classes = ["Apple Scab", "Apple Black Rot", "Grape Black Rot", "Potato Early Blight", "Tomato Healthy"]
-            
-            return model, classes
+            # CHARGEMENT AVEC PARAMÈTRES DE COMPATIBILITÉ MAXIMALE
+            model = tf.keras.models.load_model(
+                model_path, 
+                compile=False, 
+                safe_mode=False
+            )
+            return model, backup_classes
         except Exception as e:
             st.error(f"Erreur technique de chargement : {e}")
             return None, []
@@ -71,7 +82,7 @@ with st.sidebar:
         st.write("🟢 Statut: **OPÉRATIONNEL**")
     else:
         st.write("🔴 Statut: **ERREUR MOTEUR**")
-    st.write(f"🧬 Classes: **{len(classes)}**")
+    st.write(f"🧬 Réseau Neural: **Actif**")
     st.divider()
     if st.button("RESET SYSTEM"):
         st.session_state.clear()
@@ -107,22 +118,19 @@ with col_left:
         img = Image.open(file)
         st.image(img, use_container_width=True)
         if st.button("DÉCRYPTAGE NEURAL", use_container_width=True):
-            if model and len(classes) > 0:
-                # Prétraitement
+            if model:
+                # Prétraitement (Redimensionnement 224x224 pour le modèle)
                 img_p = img.resize((224, 224))
                 arr = np.array(img_p) / 255.0
                 preds = model.predict(np.expand_dims(arr, axis=0), verbose=0)[0]
                 idx = np.argmax(preds)
                 
-                # Mise à jour des jauges
-                if idx < len(classes):
-                    st.session_state['conf'] = float(np.max(preds) * 100)
-                    st.session_state['label'] = classes[idx].replace('_', ' ').replace('(', '').replace(')', '').upper()
-                    st.session_state['h2o'] = random.randint(30, 65)
-                    st.session_state['fert'] = random.randint(60, 95)
-                    st.rerun()
-                else:
-                    st.error("Désynchronisation de l'index des classes.")
+                # Mise à jour des résultats
+                st.session_state['conf'] = float(np.max(preds) * 100)
+                st.session_state['label'] = classes[idx].upper() if idx < len(classes) else "INCONNU"
+                st.session_state['h2o'] = random.randint(40, 70)
+                st.session_state['fert'] = random.randint(65, 95)
+                st.rerun()
     st.markdown('</div>', unsafe_allow_html=True)
 
 with col_right:
@@ -133,11 +141,11 @@ with col_right:
         
         st.divider()
         st.markdown("#### ⚡ ACTIONS IMMÉDIATES")
-        st.info("• Isoler les spécimens infectés.\n• Calibrer l'irrigation selon les télémesures.\n• Appliquer le protocole phytosanitaire standard.")
+        st.info("• Analyser la propagation thermique.\n• Vérifier le système d'irrigation locale.\n• Protocole phytosanitaire activé.")
         
-        st.markdown("#### 🔭 STRATÉGIE LONG TERME")
-        st.success("• Analyse du sol pour ajustement NPK.\n• Surveillance satellite accrue sur 15 jours.")
+        st.markdown("#### 🔭 PRÉVISIONS")
+        st.success("• Stabilité prévue sous 48h après traitement.\n• Surveillance satellite continue.")
     else:
-        st.info("🛰️ SCANNEZ UNE FEUILLE POUR DÉBUTER L'ANALYSE")
-        st.write("Le système est en attente de données visuelles via le capteur optique.")
+        st.info("🛰️ EN ATTENTE DE TÉLÉMESURES OPTIQUES")
+        st.write("Veuillez charger une image pour lancer l'analyse neurale.")
     st.markdown('</div>', unsafe_allow_html=True)
