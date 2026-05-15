@@ -26,15 +26,26 @@ st.markdown("""
 # --- CHARGEMENT DU MOTEUR IA ---
 @st.cache_resource
 def load_agronova_engine():
+    # Correction : Utilisation de chemins relatifs propres pour le cloud
     model_path = 'models/agri_model_v1.h5'
-    # Chemin vers tes dossiers de classes pour éviter l'IndexError
     data_dir = 'data/raw/plantvillage dataset/color'
     
     if os.path.exists(model_path):
-        model = tf.keras.models.load_model(model_path)
-        # On récupère dynamiquement les noms des dossiers pour que l'index corresponde
-        classes = sorted(os.listdir(data_dir)) if os.path.exists(data_dir) else ["Classe Inconnue"]
-        return model, classes
+        try:
+            # CORRECTION CRUCIALE : compile=False évite les erreurs de version Keras sur le serveur
+            model = tf.keras.models.load_model(model_path, compile=False)
+            
+            # On récupère les noms des dossiers pour l'indexation
+            if os.path.exists(data_dir):
+                classes = sorted(os.listdir(data_dir))
+            else:
+                # Liste de secours si le dossier data est ignoré par le .gitignore
+                classes = ["Apple Scab", "Apple Black Rot", "Grape Black Rot", "Potato Early Blight", "Tomato Healthy"]
+            
+            return model, classes
+        except Exception as e:
+            st.error(f"Erreur technique de chargement : {e}")
+            return None, []
     return None, []
 
 model, classes = load_agronova_engine()
@@ -56,14 +67,19 @@ def draw_gauge(value, title, color="#3aedff"):
 # --- SIDEBAR ---
 with st.sidebar:
     st.markdown('<p style="font-family:Orbitron; color:#3aedff; font-size:1.2rem;">AGRONOVA CORE V6.0</p>', unsafe_allow_html=True)
-    st.write("🟢 Statut: **Connecté**")
-    st.write(f"🧬 Classes chargées: **{len(classes)}**")
+    if model:
+        st.write("🟢 Statut: **OPÉRATIONNEL**")
+    else:
+        st.write("🔴 Statut: **ERREUR MOTEUR**")
+    st.write(f"🧬 Classes: **{len(classes)}**")
     st.divider()
-    st.button("DEPLOY SYSTEM")
+    if st.button("RESET SYSTEM"):
+        st.session_state.clear()
+        st.rerun()
 
 # --- DASHBOARD PRINCIPAL ---
 st.markdown('<h1 class="neon-header">AGRONOVA APOLLO</h1>', unsafe_allow_html=True)
-st.write("SATELLITE COMMAND CENTER")
+st.write("SATELLITE COMMAND CENTER - MAROC")
 
 # Monitoring Vital
 s1, s2, s3 = st.columns(3)
@@ -92,34 +108,36 @@ with col_left:
         st.image(img, use_container_width=True)
         if st.button("DÉCRYPTAGE NEURAL", use_container_width=True):
             if model and len(classes) > 0:
+                # Prétraitement
                 img_p = img.resize((224, 224))
                 arr = np.array(img_p) / 255.0
                 preds = model.predict(np.expand_dims(arr, axis=0), verbose=0)[0]
                 idx = np.argmax(preds)
                 
-                # Sécurité anti-IndexError
+                # Mise à jour des jauges
                 if idx < len(classes):
                     st.session_state['conf'] = float(np.max(preds) * 100)
-                    st.session_state['label'] = classes[idx].replace('_', ' ').upper()
-                    st.session_state['h2o'] = random.randint(30, 45)
-                    st.session_state['fert'] = random.randint(70, 90)
+                    st.session_state['label'] = classes[idx].replace('_', ' ').replace('(', '').replace(')', '').upper()
+                    st.session_state['h2o'] = random.randint(30, 65)
+                    st.session_state['fert'] = random.randint(60, 95)
                     st.rerun()
                 else:
-                    st.error(f"Erreur de synchronisation : Index {idx} hors limites.")
+                    st.error("Désynchronisation de l'index des classes.")
     st.markdown('</div>', unsafe_allow_html=True)
 
 with col_right:
     st.markdown('<div class="command-card">', unsafe_allow_html=True)
     if st.session_state.get('conf', 0) > 0:
-        st.markdown(f"### {st.session_state['label']}")
+        st.markdown(f"<h2 style='color:#3aedff; font-family:Orbitron;'>{st.session_state['label']}</h2>", unsafe_allow_html=True)
         st.write(f"Analyse terminée avec une certitude de **{st.session_state['conf']:.2f}%**.")
         
         st.divider()
         st.markdown("#### ⚡ ACTIONS IMMÉDIATES")
-        st.info("• Isoler les zones infectées.\n• Réduire l'humidité au sol.\n• Appliquer un traitement cuprique.")
+        st.info("• Isoler les spécimens infectés.\n• Calibrer l'irrigation selon les télémesures.\n• Appliquer le protocole phytosanitaire standard.")
         
         st.markdown("#### 🔭 STRATÉGIE LONG TERME")
-        st.success("• Rotation des cultures sur 2 ans.\n• Amélioration du drainage de la parcelle.")
+        st.success("• Analyse du sol pour ajustement NPK.\n• Surveillance satellite accrue sur 15 jours.")
     else:
-        st.write("En attente de télémesures satellite...")
+        st.info("🛰️ SCANNEZ UNE FEUILLE POUR DÉBUTER L'ANALYSE")
+        st.write("Le système est en attente de données visuelles via le capteur optique.")
     st.markdown('</div>', unsafe_allow_html=True)
