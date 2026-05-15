@@ -1,5 +1,6 @@
 streamlit
-tensorflow-cpu
+tensorflow
+keras
+pillow
 numpy
 plotly
-Pillow

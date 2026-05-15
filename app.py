@@ -1,9 +1,11 @@
 import os
-# FORCE LE MODE LEGACY AVANT TOUT IMPORT TENSORFLOW
+# Force le mode compatibilité Keras Legacy avant tout import
 os.environ['TF_USE_LEGACY_KERAS'] = '1'
 
 import streamlit as st
 import tensorflow as tf
+# Importation directe depuis tensorflow pour garantir la détection sur le serveur
+from tensorflow import keras
 import numpy as np
 from PIL import Image
 import plotly.graph_objects as go
@@ -29,11 +31,11 @@ st.markdown("""
 @st.cache_resource
 def load_agronova_engine():
     model_path = 'models/agri_model_v1.h5'
-    # Liste de secours des classes au cas où le dossier 'data' est ignoré par Git
+    # Liste des classes correspondant à l'entraînement de ton modèle
     backup_classes = [
         "Apple Scab", "Apple Black Rot", "Cedar Apple Rust", "Apple Healthy",
         "Blueberry Healthy", "Cherry Powdery Mildew", "Cherry Healthy",
-        "Corn Cercospora Leaf Spot", "Corn Common Rust", "Corn Northern Leaf Blight", "Corn Healthy",
+        "Corn Cercospora", "Corn Common Rust", "Corn Northern Blight", "Corn Healthy",
         "Grape Black Rot", "Grape Esca", "Grape Leaf Blight", "Grape Healthy",
         "Orange Haunglongbing", "Peach Bacterial Spot", "Peach Healthy",
         "Pepper Bell Bacterial Spot", "Pepper Bell Healthy",
@@ -41,18 +43,14 @@ def load_agronova_engine():
         "Raspberry Healthy", "Soybean Healthy", "Squash Powdery Mildew",
         "Strawberry Leaf Scorch", "Strawberry Healthy",
         "Tomato Bacterial Spot", "Tomato Early Blight", "Tomato Late Blight",
-        "Tomato Leaf Mold", "Tomato Septoria Leaf Spot", "Tomato Spider Mites",
-        "Tomato Target Spot", "Tomato Yellow Leaf Curl Virus", "Tomato Mosaic Virus", "Tomato Healthy"
+        "Tomato Leaf Mold", "Tomato Septoria Spot", "Tomato Spider Mites",
+        "Tomato Target Spot", "Tomato Yellow Curl", "Tomato Mosaic Virus", "Tomato Healthy"
     ]
     
     if os.path.exists(model_path):
         try:
-            # CHARGEMENT AVEC PARAMÈTRES DE COMPATIBILITÉ MAXIMALE
-            model = tf.keras.models.load_model(
-                model_path, 
-                compile=False, 
-                safe_mode=False
-            )
+            # Chargement avec désactivation de la compilation pour éviter les conflits de version
+            model = tf.keras.models.load_model(model_path, compile=False)
             return model, backup_classes
         except Exception as e:
             st.error(f"Erreur technique de chargement : {e}")
@@ -92,12 +90,12 @@ with st.sidebar:
 st.markdown('<h1 class="neon-header">AGRONOVA APOLLO</h1>', unsafe_allow_html=True)
 st.write("SATELLITE COMMAND CENTER - MAROC")
 
-# Monitoring Vital
-s1, s2, s3 = st.columns(3)
+# Initialisation des jauges
 conf = st.session_state.get('conf', 0)
 h2o = st.session_state.get('h2o', 0)
 fert = st.session_state.get('fert', 0)
 
+s1, s2, s3 = st.columns(3)
 with s1: 
     st.plotly_chart(draw_gauge(conf, "CERTITUDE IA", "#58a6ff"), use_container_width=True)
 with s2: 
@@ -107,7 +105,6 @@ with s3:
 
 st.divider()
 
-# Analyse
 col_left, col_right = st.columns([1, 1.3], gap="large")
 
 with col_left:
@@ -119,17 +116,17 @@ with col_left:
         st.image(img, use_container_width=True)
         if st.button("DÉCRYPTAGE NEURAL", use_container_width=True):
             if model:
-                # Prétraitement (Redimensionnement 224x224 pour le modèle)
+                # Prétraitement de l'image
                 img_p = img.resize((224, 224))
                 arr = np.array(img_p) / 255.0
                 preds = model.predict(np.expand_dims(arr, axis=0), verbose=0)[0]
                 idx = np.argmax(preds)
                 
-                # Mise à jour des résultats
+                # Mise à jour des données en session
                 st.session_state['conf'] = float(np.max(preds) * 100)
                 st.session_state['label'] = classes[idx].upper() if idx < len(classes) else "INCONNU"
-                st.session_state['h2o'] = random.randint(40, 70)
-                st.session_state['fert'] = random.randint(65, 95)
+                st.session_state['h2o'] = random.randint(40, 75)
+                st.session_state['fert'] = random.randint(60, 90)
                 st.rerun()
     st.markdown('</div>', unsafe_allow_html=True)
 
@@ -138,14 +135,10 @@ with col_right:
     if st.session_state.get('conf', 0) > 0:
         st.markdown(f"<h2 style='color:#3aedff; font-family:Orbitron;'>{st.session_state['label']}</h2>", unsafe_allow_html=True)
         st.write(f"Analyse terminée avec une certitude de **{st.session_state['conf']:.2f}%**.")
-        
         st.divider()
         st.markdown("#### ⚡ ACTIONS IMMÉDIATES")
-        st.info("• Analyser la propagation thermique.\n• Vérifier le système d'irrigation locale.\n• Protocole phytosanitaire activé.")
-        
-        st.markdown("#### 🔭 PRÉVISIONS")
-        st.success("• Stabilité prévue sous 48h après traitement.\n• Surveillance satellite continue.")
+        st.info("• Isoler les parcelles touchées.\n• Ajuster l'irrigation via satellite.\n• Protocole phytosanitaire recommandé.")
     else:
-        st.info("🛰️ EN ATTENTE DE TÉLÉMESURES OPTIQUES")
+        st.info("🛰️ EN ATTENTE DE TÉLÉMESURES")
         st.write("Veuillez charger une image pour lancer l'analyse neurale.")
     st.markdown('</div>', unsafe_allow_html=True)
