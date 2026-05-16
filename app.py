@@ -1,5 +1,5 @@
 import os
-# Force le mode de compatibilité avant tout import
+# Force le mode compatibilité Keras Legacy
 os.environ['TF_USE_LEGACY_KERAS'] = '1'
 
 import streamlit as st
@@ -12,7 +12,7 @@ import random
 # --- CONFIGURATION SYSTÈME ---
 st.set_page_config(page_title="AGRONOVA APOLLO", page_icon="🛰️", layout="wide")
 
-# --- CSS PERSONNALISÉ ---
+# --- CSS : INTERFACE SATELLITE COMMAND ---
 st.markdown("""
     <style>
     @import url('https://fonts.googleapis.com/css2?family=Orbitron:wght@400;700&family=Rajdhani:wght@300;500;700&display=swap');
@@ -29,8 +29,7 @@ st.markdown("""
 @st.cache_resource
 def load_agronova_engine():
     model_path = 'models/agri_model_v1.h5'
-    
-    classes = [
+    backup_classes = [
         "Apple Scab", "Apple Black Rot", "Cedar Apple Rust", "Apple Healthy",
         "Blueberry Healthy", "Cherry Powdery Mildew", "Cherry Healthy",
         "Corn Cercospora", "Corn Common Rust", "Corn Northern Blight", "Corn Healthy",
@@ -47,9 +46,9 @@ def load_agronova_engine():
     
     if os.path.exists(model_path):
         try:
-            # Chargement via tf.keras.models pour éviter les erreurs d'import Keras isolé
+            # Utilisation de tf.keras pour éviter l'erreur d'importation Keras isolée
             model = tf.keras.models.load_model(model_path, compile=False)
-            return model, classes
+            return model, backup_classes
         except Exception as e:
             st.error(f"Erreur technique de chargement : {e}")
             return None, []
@@ -87,6 +86,7 @@ with st.sidebar:
 st.markdown('<h1 class="neon-header">AGRONOVA APOLLO</h1>', unsafe_allow_html=True)
 st.write("SATELLITE COMMAND CENTER - MAROC")
 
+# Jauges
 conf = st.session_state.get('conf', 0)
 h2o = st.session_state.get('h2o', 0)
 fert = st.session_state.get('fert', 0)
@@ -123,7 +123,7 @@ with col_right:
     st.markdown('<div class="command-card">', unsafe_allow_html=True)
     if st.session_state.get('conf', 0) > 0:
         st.markdown(f"<h2 style='color:#3aedff; font-family:Orbitron;'>{st.session_state['label']}</h2>", unsafe_allow_html=True)
-        st.write(f"Analyse terminée : **{st.session_state['conf']:.2f}%** de confiance.")
+        st.write(f"Analyse terminée avec **{st.session_state['conf']:.2f}%** de confiance.")
     else:
         st.info("🛰️ EN ATTENTE DE TÉLÉMESURES")
     st.markdown('</div>', unsafe_allow_html=True)
