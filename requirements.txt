@@ -1,5 +1,14 @@
-streamlit
-tensorflow-cpu
-pillow
-numpy
-plotly
+# --- BACK-END : INFERENCE IA & API MULTI-NOEUNDS ---
+tensorflow==2.14.0         # Moteur de Deep Learning pour exécuter le CNN MobileNetV2
+fastapi==0.110.0           # Framework web ultra-rapide pour créer l'API distribuée
+uvicorn==0.28.0            # Serveur ASGI de production pour faire tourner l'API FastAPI
+python-multipart==0.0.9    # Permet à l'API de recevoir les fichiers images envoyés par le réseau
+
+# --- FRONT-END : COCKPIT INTERACTIF ---
+streamlit==1.32.0          # Framework de l'application web pour l'interface agriculteur
+requests==2.31.0           # Gère la communication HTTP (Envoi de l'image du Front au Back)
+plotly==5.19.0             # Moteur graphique pour afficher les jauges de télémétrie (Humidité/Sol)
+
+# --- TRAITEMENT DE DONNÉES & MATRICES ---
+numpy==1.26.4              # Gestion des tableaux de pixels (Prétraitement de l'imagerie)
+Pillow==10.2.0             # Bibliothèque de traitement d'images (Ouverture, redimensionnement 224x224)

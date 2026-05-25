@@ -1,0 +1,20 @@
+services:
+  backend:
+    build: ./backend
+    container_name: apollo_backend
+    ports:
+      - "8000:8000"
+    # volumes:          <-- Ajoute un # ici
+    #   - ./backend:/app <-- Ajoute un # ici
+    environment:
+      - TF_ENABLE_ONEDNN_OPTS=0
+
+  frontend:
+    build: ./frontend
+    container_name: apollo_frontend
+    ports:
+      - "8501:8501"
+    # volumes:           <-- Ajoute un # ici
+    #   - ./frontend:/app <-- Ajoute un # ici
+    depends_on:
+      - backend
