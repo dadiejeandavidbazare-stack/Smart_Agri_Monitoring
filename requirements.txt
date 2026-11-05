@@ -11,4 +11,4 @@ plotly==5.19.0             # Moteur graphique pour afficher les jauges de télé
 
 # --- TRAITEMENT DE DONNÉES & MATRICES ---
 numpy==1.26.4              # Gestion des tableaux de pixels (Prétraitement de l'imagerie)
-Pillow==10.2.0             # Bibliothèque de traitement d'images (Ouverture, redimensionnement 224x224)
+Pillow==13.0.0             # Bibliothèque de traitement d'images (Ouverture, redimensionnement 224x224)
